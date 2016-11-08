@@ -1,0 +1,149 @@
+---
+title: "Exploratory data analysis- human activity"
+author: "May Phang"
+date: "November 8, 2016"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE, fig.align = 'center'}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r, data, echo = FALSE, cache = TRUE}
+# read in necessary libraries
+suppressMessages(library(dplyr))
+library(reshape)
+
+setwd("C:/Users/ymp/Documents/Kaggle/201611_UCIHumanActivity")
+############## Step 1: Merges the training and the test sets to create one data set ##############
+
+## download zip if it doesnt exist ##
+if(!file.exists("getdata-projectfiles-UCI HAR Dataset.zip")|!file.exists("UCI HAR Dataset")){
+  ZipURL <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+  download.file(ZipURL, destfile="./getdata-projectfiles-UCI HAR Dataset.zip")
+  ZipFile <- unzip("getdata-projectfiles-UCI HAR Dataset.zip", exdir = getwd())
+}
+
+
+## create tables from the unzipped files ##
+dir_name <- "./UCI HAR Dataset/"
+features_data <- read.table(paste(dir_name, "features.txt", sep="")) # read in features name, these are variables for each test and training datasets
+features <- features_data$V2 #these are the column names for each dataset
+rm("features_data") # clear unnecessary data from the workspace for memory management
+
+# read in the descriptive activity names data
+Desc_Activity <- read.table("./UCI HAR Dataset/activity_labels.txt", col.names = c("activityID", "ActivityDesc"))
+
+## read in training data ##
+sub_train <- read.table(paste(dir_name, "train/subject_train.txt", sep=""), col.names = "SubjectID") #corresponding subject ID
+X_train <- read.table(paste(dir_name, "train/X_train.txt", sep=""), col.names = features) # training features
+Y_train <- read.table(paste(dir_name, "train/Y_train.txt", sep=""), col.names = "activityID") # these are the activity labels (as ID)
+train  <- cbind(X_train, sub_train, Y_train) # combine the features and labels into 1 training dataset
+
+train <- merge(train, Desc_Activity)
+
+# fix up the names
+names(train) <- gsub("(\\.{1,})", ".", names(train))
+# get rid of the repeated words for Body
+names(train) <- tolower(gsub("BodyBody", "Body", names(train)))
+names(train) <- tolower(names(train))
+train$subjectid <- as.factor(train$subjectid)
+train$activitydesc <- as.factor(train$activitydesc)
+
+
+## read in test data ##
+sub_test <- read.table(paste(dir_name, "test/subject_test.txt", sep=""), col.names = "SubjectID") #corresponding subject ID
+X_test <- read.table(paste(dir_name, "test/X_test.txt", sep=""), col.names = features) # testing features
+Y_test <- read.table(paste(dir_name, "test/Y_test.txt", sep=""), col.names = "activityID") # these are the activity labels (as ID)
+test  <- cbind(X_test, sub_test, Y_test) # combine the features and labels into 1 testing dataset
+
+test <- merge(test, Desc_Activity)
+
+# fix up the names
+names(test) <- gsub("(\\.{1,})", ".", names(test))
+# get rid of the repeated words for Body
+names(test) <- tolower(gsub("BodyBody", "Body", names(test)))
+names(test) <- tolower(names(test))
+test$subjectid <- as.factor(test$subjectid)
+test$activitydesc <- as.factor(test$activitydesc)
+
+# find the columns that contain the relevant words
+Col_Mean <- names(select(train, contains("mean", ignore.case = FALSE))) # dont want to get the angles
+Col_Std <- names(select(train, contains("std", ignore.case = "FALSE"))) # dont want to get the angles
+# Col_Retain <- c("SubjectID", "activityID", Col_Mean, Col_Std)# create a vector of the columns to retain
+
+```
+
+## Introduction
+
+This short slide deck includes interactive visualisations of exploratory data analysis carried out on the UCI Machine Learning data on Human Activity recognition. 
+
+These includes: 
+
+- Response variable distribution
+- fbodyacc s.d. 3D visualisation
+- Metric box plots by subject ID (walking)
+
+## Response variable distribution
+
+```{r dist, cache = TRUE, echo = FALSE, fig.align = 'center'}
+suppressMessages(library(plotly))
+suppressMessages(library(ggplot2))
+suppressMessages(library(mlr))
+
+activity <- sort(unique(train$activitydesc))
+subjectid.cnt <- table(train$subjectid, train$activitydesc)
+# colnames(subjectid.cnt) == activity
+m <- list(  l = 50,
+            r = 20,
+            b = 150,
+            t = 25,
+            pad = 4)
+plot_ly(data = train, x = ~ activity, y = ~subjectid.cnt[1, ], name = row.names(subjectid.cnt)[1], type = "bar") %>% 
+  add_trace(y = ~subjectid.cnt[2, ], name = row.names(subjectid.cnt)[2]) %>%
+  add_trace(y = ~subjectid.cnt[3, ], name = row.names(subjectid.cnt)[3]) %>%
+  add_trace(y = ~subjectid.cnt[4, ], name = row.names(subjectid.cnt)[4]) %>%
+  add_trace(y = ~subjectid.cnt[5, ], name = row.names(subjectid.cnt)[5]) %>%
+  add_trace(y = ~subjectid.cnt[6, ], name = row.names(subjectid.cnt)[6]) %>%
+  add_trace(y = ~subjectid.cnt[7, ], name = row.names(subjectid.cnt)[7]) %>%
+  add_trace(y = ~subjectid.cnt[8, ], name = row.names(subjectid.cnt)[8]) %>%
+  add_trace(y = ~subjectid.cnt[9, ], name = row.names(subjectid.cnt)[9]) %>%
+  add_trace(y = ~subjectid.cnt[10, ], name = row.names(subjectid.cnt)[10]) %>%
+  add_trace(y = ~subjectid.cnt[11, ], name = row.names(subjectid.cnt)[11]) %>%
+  add_trace(y = ~subjectid.cnt[12, ], name = row.names(subjectid.cnt)[12]) %>%
+  add_trace(y = ~subjectid.cnt[13, ], name = row.names(subjectid.cnt)[13]) %>%
+  add_trace(y = ~subjectid.cnt[14, ], name = row.names(subjectid.cnt)[14]) %>%
+  add_trace(y = ~subjectid.cnt[15, ], name = row.names(subjectid.cnt)[15]) %>%
+  add_trace(y = ~subjectid.cnt[16, ], name = row.names(subjectid.cnt)[16]) %>%
+  add_trace(y = ~subjectid.cnt[17, ], name = row.names(subjectid.cnt)[17]) %>%
+  add_trace(y = ~subjectid.cnt[18, ], name = row.names(subjectid.cnt)[18]) %>%
+  add_trace(y = ~subjectid.cnt[19, ], name = row.names(subjectid.cnt)[19]) %>%
+  add_trace(y = ~subjectid.cnt[20, ], name = row.names(subjectid.cnt)[20]) %>%
+  add_trace(y = ~subjectid.cnt[21, ], name = row.names(subjectid.cnt)[21]) %>%
+  # layout(autosize = F, width = 500, height = 650, margin = m, showlegend = F,
+  layout(autosize = F, width = 800, height = 500, margin = m, showlegend = F,
+         title = "Distribution of activity observations by subject ID", yaxis = list(title = "Observations"), 
+         barmode = "stack", xaxis = list(tickangle = 90, textfont = list(size = 2.5), title = ""))
+
+```
+
+## fbodyacc s.d. 3D visualisation
+
+```{r met3d, echo = FALSE, cache = TRUE}
+
+plot_ly(data = train, x = train$fbodyacc.std.x, y = train$fbodyacc.std.y, z = train$fbodyacc.std.z, type = "scatter3d", 
+        mode = "markers", color = train$activitydesc, marker = list(size = 4))
+```
+
+
+## Metric box plots by subject ID (walking)
+
+
+```{r subid, echo = FALSE, cache = TRUE, warning = FALSE, message = FALSE}
+plot_ly(data = subset(train, activitydesc = "WALKING"), y = train$fbodyacc.std.x, color = train$subjectid, type = "box") %>%
+  layout(autosize = F, width = 800, height = 500)
+# may imply need to form some sort of calibration so that the algorithm takes it into account (different heights)
+
+```
+
+
